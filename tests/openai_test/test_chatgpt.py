@@ -3,8 +3,12 @@ import uvicorn
 from openai import OpenAI 
 import os
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
 app = FastAPI()
+
+# 環境変数の読み込み
+load_dotenv()
 
 # リクエストボディの定義
 class Message(BaseModel):
@@ -12,7 +16,7 @@ class Message(BaseModel):
 
 # openAIのクライアントを作成
 client = OpenAI(
-    api_key = os.environ['OPENAI_API_KEY']
+    api_key = os.getenv('API_KEY')
 )
 
 @app.post("/gpt")
@@ -21,7 +25,7 @@ async def gpt(message: Message):
     # プロンプトを受け取り、GPT-3で応答を生成
     prompt = message.prompt
     response = client.chat.completions.create(
-        model = "gpt-3.5-turbo-16k",
+        model = "gpt-3.5-turbo",
         messages = [
             {"role": "user", "content": prompt},
         ],
