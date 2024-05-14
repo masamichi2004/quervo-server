@@ -27,12 +27,13 @@ async def gpt(message: Message):
     response = client.chat.completions.create(
         model = "gpt-3.5-turbo",
         messages = [
+            {"role": "system", "content": "You answer in English."},
             {"role": "user", "content": prompt},
         ],
     )
 
     # 応答を取得
-    text = response['choices'][0]['message']['content']
+    text = response.choices[0].message.content
 
     return {"response": text}
 
