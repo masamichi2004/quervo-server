@@ -56,6 +56,7 @@ page_content = docs[0][0].page_content
 similarity = docs[0][1]
 
 # ページ名を取得
-name = page_content.split("\nname: ")[1]
+shop_information = page_content.replace("\n", ", ")
 
-pprint(name)
+pprint(shop_information)
+pprint(similarity)
