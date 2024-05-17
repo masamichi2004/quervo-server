@@ -66,16 +66,14 @@ query = "一人でゆっくり飲みたいなあ"
 # 類似度検索
 docs = vectordb.similarity_search_with_relevance_scores(query, k=1)
 
-# # ページコンテンツを取得
-# page_content = docs[0][0].page_content
+# ページコンテンツを取得
+page_content = docs[0][0].page_content
 
-# # 類似度スコアとページ名を取得
-# similarity = docs[0][1]
+# 類似度スコアとページ名を取得
+similarity = docs[0][1]
 
-# # ページ名を取得
-# shop_information = page_content.replace("\n", ", ")
+# ページ名を取得
+shop_information = page_content.replace("\n", ", ")
 
-# pprint(shop_information)
-# pprint(similarity)
-
-pprint(docs)
+pprint(shop_information)
+pprint(similarity)
