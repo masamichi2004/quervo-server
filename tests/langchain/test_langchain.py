@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -14,7 +13,7 @@ COLLECTION_NAME = "langchain"
 print("CSVファイルからドキュメントを読み込む")
 try:
     loader = CSVLoader(
-        file_path="../../app/data/example.csv",
+        file_path="app/data/example.csv",
         csv_args={
             "delimiter": ",",
             "quotechar": '"',
