@@ -29,7 +29,7 @@ try:
 except Exception as e:
     print(f"エラー: {e}")
 
-
+print("埋め込み表現生成用モデルをHugging Face Hubから取得")
 # 埋め込み表現生成用モデルをHugging Face Hubから取得
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
