@@ -4,20 +4,21 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from pprint import pprint
 import os
 
-PERSIST_PATH = "../../app/vectordb"
+PERSIST_PATH = "./app/vectordb"
 
 # Chromaデータベースを生成するディレクトリを指定
-persist_directory = "../../app/vectordb"
+persist_directory = "./app/vectordb"
 
+print(os.getcwd())
 
 if not os.path.exists(PERSIST_PATH):
     # CSVファイルからドキュメントを読み込む
     print("ベクトル情報のデータベースが存在しません\nベクトルデータベースを作成します")
     print("CSVファイルからドキュメントを読み込む")
-
+    print(os.getcwd())
     try:
         loader = CSVLoader(
-            file_path="../../app/data/example.csv",
+            file_path="./app/data/example.csv",
             csv_args={
                 "delimiter": ",",
                 "quotechar": '"',
@@ -55,7 +56,7 @@ if not os.path.exists(PERSIST_PATH):
 
 else:    
     print("ベクトル情報のデータベースを読み込む")
-
+    print(os.getcwd())
     # データベースを読み込む
     vectordb = Chroma(persist_directory=persist_directory, collection_name="faqs", embedding_function=HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2"))
 
@@ -66,14 +67,16 @@ query = "一人でゆっくり飲みたいなあ"
 # 類似度検索
 docs = vectordb.similarity_search_with_relevance_scores(query, k=1)
 
-# ページコンテンツを取得
-page_content = docs[0][0].page_content
+# # ページコンテンツを取得
+# page_content = docs[0][0].page_content
 
-# 類似度スコアとページ名を取得
-similarity = docs[0][1]
+# # 類似度スコアとページ名を取得
+# similarity = docs[0][1]
 
-# ページ名を取得
-shop_information = page_content.replace("\n", ", ")
+# # ページ名を取得
+# shop_information = page_content.replace("\n", ", ")
 
-pprint(shop_information)
-pprint(similarity)
+# pprint(shop_information)
+# pprint(similarity)
+
+pprint(docs)
