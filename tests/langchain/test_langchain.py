@@ -44,7 +44,7 @@ if not os.path.exists(PERSIST_PATH):
     vectordb = Chroma.from_documents(
         documents=docs,
         embedding=embedding,
-        collection_name="faqs",
+        collection_name="pubs",
         persist_directory=persist_directory,
         collection_metadata={"hnsw:space": "cosine"}
     )
@@ -58,11 +58,11 @@ else:
     print("ベクトル情報のデータベースを読み込む")
     
     # データベースを読み込む
-    vectordb = Chroma(persist_directory=persist_directory, collection_name="faqs", embedding_function=HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2"))
+    vectordb = Chroma(persist_directory=persist_directory, collection_name="pubs", embedding_function=HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2"))
 
     print("ベクトル情報のデータベースを読み込みました")
 
-query = "一人でゆっくり飲みたいなあ"
+query = "女の子とデート"
 
 # 類似度検索
 docs = vectordb.similarity_search_with_relevance_scores(query, k=1)
