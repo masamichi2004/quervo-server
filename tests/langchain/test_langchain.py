@@ -9,9 +9,16 @@ PERSIST_PATH = "./app/vectordb"
 # Chromaデータベースを生成するディレクトリを指定
 persist_directory = "./app/vectordb"
 
+# ベクトル情報のデータベースが存在するか確認する関数
+def vectorDB_is_exist():
+    if os.path.exists(PERSIST_PATH):
+        return True
+    else:
+        return False
 
 
-if not os.path.exists(PERSIST_PATH):
+# ベクトル情報のデータベースが存在しない場合
+if not vectorDB_is_exist():
     # CSVファイルからドキュメントを読み込む
     print("ベクトル情報のデータベースが存在しません\nベクトルデータベースを作成します")
     print("CSVファイルからドキュメントを読み込む")
@@ -54,6 +61,7 @@ if not os.path.exists(PERSIST_PATH):
 
     print("ベクトル情報のデータベースを作成しました")
 
+# ベクトル情報のデータベースが存在する場合
 else:    
     print("ベクトル情報のデータベースを読み込む")
     
