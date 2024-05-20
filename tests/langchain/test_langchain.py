@@ -3,6 +3,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from pprint import pprint
 import os
+import traceback
 
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
@@ -34,31 +35,25 @@ def main(query: str):
         vectordb = Chroma(persist_directory=persist_directory, collection_name="pubs", embedding_function=EMBEDDING_MODEL)
 
     else:
-        if os.path.exists(csv_filepath) is False:
-            print("ファイルが見つかりません")
+        if os.path.exists(csv_filepath) == False:
+            print(f"{csv_filepath} のパスでCSVファイルが見つかりませんでした")
             return
 
         try:
             docs = csv_loader(csv_filepath, fieldlist)
-        except FileNotFoundError as e:
-            print("ファイルが見つかりません")
-            return
-        except ValueError as e:
-            print("ファイルの値が不正です")
-            return
-        except KeyError as e:
-            print("ファイルの形式が違います")
-            return
-        except ModuleNotFoundError as e:
-            print("モジュールが見つかりません")
-            return
-        except AttributeError as e:
-            print("属性が正しくありません")
-            return
+
         except RuntimeError as e:
-            print("ランタイムエラー")
+            print("ランタイムエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
+            return
+
+        except Exception as e:
+            print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
             return
         
+        if len(docs) == 0:
+            print("CSVファイルにデータがありません")
+            return
+
         vectordb = Chroma.from_documents(
             documents=docs,
             embedding=EMBEDDING_MODEL,
