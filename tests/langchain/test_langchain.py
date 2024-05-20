@@ -4,85 +4,80 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from pprint import pprint
 import os
 
-PERSIST_PATH = "./app/vectordb"
 
-# Chromaデータベースを生成するディレクトリを指定
+EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
+
 persist_directory = "./app/vectordb"
 
-# ベクトル情報のデータベースが存在するか確認する関数
-def vectorDB_is_exist():
-    if os.path.exists(PERSIST_PATH):
-        return True
-    else:
-        return False
+csv_filepath = "./app/data/example.csv"
+
+fieldlist = ["id", "name", "long", "lat", "area", "category"]
 
 
-# ベクトル情報のデータベースが存在しない場合
-if not vectorDB_is_exist():
-    # CSVファイルからドキュメントを読み込む
-    print("ベクトル情報のデータベースが存在しません\nベクトルデータベースを作成します")
-    print("CSVファイルからドキュメントを読み込む")
-    
-    try:
-        loader = CSVLoader(
-            file_path="./app/data/example.csv",
-            csv_args={
-                "delimiter": ",",
-                "quotechar": '"',
-                "fieldnames": ["id", "name", "long", "lat", "area", "category"],
-            },
-            encoding="utf-8",
-        )
+def csv_loader(filepath: str, fieldlist: list):
 
-        # 変数docsにドキュメントを読み込む
-        docs = loader.load()
-
-    except Exception as e:
-        print(f"エラー: {e}")
-
-    print("埋め込み表現生成用モデルをHugging Face Hubから取得")
-
-    # 埋め込み表現生成用モデルをHugging Face Hubから取得
-    embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
-
-    print("ドキュメントをChromaデータベースに格納")
-
-    # ドキュメントをChromaデータベースに格納
-    vectordb = Chroma.from_documents(
-        documents=docs,
-        embedding=embedding,
-        collection_name="pubs",
-        persist_directory=persist_directory,
-        collection_metadata={"hnsw:space": "cosine"}
+    loader = CSVLoader(
+        file_path=filepath,
+        csv_args={
+            "delimiter": ",",
+            "quotechar": '"',
+            "fieldnames": fieldlist,
+        },
+        encoding="utf-8",
     )
 
-    # データベースを永続化
-    vectordb.persist()
+    return loader.load()
 
-    print("ベクトル情報のデータベースを作成しました")
 
-# ベクトル情報のデータベースが存在する場合
-else:    
-    print("ベクトル情報のデータベースを読み込む")
-    
-    # データベースを読み込む
-    vectordb = Chroma(persist_directory=persist_directory, collection_name="pubs", embedding_function=HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2"))
+def main(query: str):
+    if os.path.exists(persist_directory): 
+        vectordb = Chroma(persist_directory=persist_directory, collection_name="pubs", embedding_function=EMBEDDING_MODEL)
 
-    print("ベクトル情報のデータベースを読み込みました")
+    else:
+        if os.path.exists(csv_filepath) is False:
+            print("ファイルが見つかりません")
+            return
 
-query = "女の子とデート"
+        try:
+            docs = csv_loader(csv_filepath, fieldlist)
+        except FileNotFoundError as e:
+            print("ファイルが見つかりません")
+            return
+        except ValueError as e:
+            print("ファイルの値が不正です")
+            return
+        except KeyError as e:
+            print("ファイルの形式が違います")
+            return
+        except ModuleNotFoundError as e:
+            print("モジュールが見つかりません")
+            return
+        except AttributeError as e:
+            print("属性が正しくありません")
+            return
+        except RuntimeError as e:
+            print("ランタイムエラー")
+            return
+        
+        vectordb = Chroma.from_documents(
+            documents=docs,
+            embedding=EMBEDDING_MODEL,
+            collection_name="pubs",
+            persist_directory=persist_directory,
+            collection_metadata={"hnsw:space": "cosine"}
+        )
+        vectordb.persist()
 
-# 類似度検索
-docs = vectordb.similarity_search_with_relevance_scores(query, k=1)
+    docs = vectordb.similarity_search_with_relevance_scores(query, k=2)
 
-# ページコンテンツを取得
-page_content = docs[0][0].page_content
+    page_content = docs[0][0].page_content
 
-# 類似度スコアとページ名を取得
-similarity = docs[0][1]
+    similarity = docs[0][1]
 
-# ページ名を取得
-shop_information = page_content.replace("\n", ", ")
+    shop_information = page_content.replace("\n", ", ")
 
-pprint(shop_information)
-pprint(similarity)
+    pprint(shop_information)
+    pprint(similarity)
+
+
+main(query="茨木の飲み屋")
