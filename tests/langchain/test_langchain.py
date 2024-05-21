@@ -35,15 +35,14 @@ def main(query: str):
         vectordb = Chroma(persist_directory=persist_directory, collection_name="pubs", embedding_function=EMBEDDING_MODEL)
 
     else:
-        if os.path.exists(csv_filepath) == False:
-            print(f"{csv_filepath} のパスでCSVファイルが見つかりませんでした")
-            return
-
         try:
             docs = csv_loader(csv_filepath, fieldlist)
 
+        except FileNotFoundError as e:
+            print(f"ファイルが見つかりませんでした: {csv_filepath}")
+
         except RuntimeError as e:
-            print("ランタイムエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
+            print("CSVファイルに空のフィールドが存在しています\n", traceback.format_exc())
             return
 
         except Exception as e:
