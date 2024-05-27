@@ -7,8 +7,13 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
 import traceback
+import requests
+import csv
+import math
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
+
+GOOGLE_MAP_GEOCODING_API_KEY = os.getenv("GOOGLE_MAP_GEOCODING_API_KEY")
 
 persist_directory = "./app/vectordb"
 
@@ -16,63 +21,19 @@ csv_filepath = "./app/data/example.csv"
 
 fieldlist = ["id", "name", "long", "lat", "area", "category"]
 
+LONG_INDEX = 2
+LAT_INDEX = 3
 
-
-class TestSearchPubs:
-    def csv_loader(csv_filepath: str, fieldlist: list):
-        loader = CSVLoader(
-            file_path=csv_filepath,
-            csv_args={
-                "delimiter": ",",
-                "quotechar": '"',
-                "fieldnames": fieldlist,
-            },
-            encoding="utf-8",
-        )
-
-        return loader.load()
-
-    def search_by_vectorDB(location: str, prompt: str, csv_filepath: str, fieldlist: list):
-        if os.path.exists(persist_directory): 
-            vectordb = Chroma(persist_directory=persist_directory, collection_name="pubs", embedding_function=EMBEDDING_MODEL)
-
-        else:
-            try:
-                docs = TestSearchPubs.csv_loader(csv_filepath, fieldlist)
-
-            except FileNotFoundError as e:
-                print(f"ファイルが見つかりませんでした: {csv_filepath}")
-
-            except RuntimeError as e:
-                print("CSVファイルに空のフィールドが存在しています\n", traceback.format_exc())
-                return
-
-            except Exception as e:
-                print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
-                return
-            
-            if len(docs) == 0:
-                print("CSVファイルにデータがありません")
-                return
-
-            vectordb = Chroma.from_documents(
-                documents=docs,
-                embedding=EMBEDDING_MODEL,
-                collection_name="pubs",
-                persist_directory=persist_directory,
-                collection_metadata={"hnsw:space": "cosine"}
-            )
-            vectordb.persist()
-
-        docs = vectordb.similarity_search_with_relevance_scores(prompt, k=1)
-
-        page_content = docs[0][0].page_content
-
-        similarity = docs[0][1]
-
-        shop_information = page_content.replace("\n", ", ")
-
-        return{"shop_information": shop_information, "similarity": similarity}
+async def get_cordinates(place_name: str) -> float:
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={GOOGLE_MAP_GEOCODING_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+    if data['status'] == 'OK':
+        lat = data['results'][0]['geometry']['location']['lat']
+        long = data['results'][0]['geometry']['location']['lng']
+        return lat, long
+    else:
+        return None, None
 
 app = FastAPI()
 
@@ -95,11 +56,81 @@ async def hello():
 
 @app.post("/api")
 async def search_pub(request: Request):
-    location = request.location 
+    csvlist_by_python = []
+    csvlist_by_chroma = []
+    distancelist = []
+    
+    location = request.location
     prompt = request.prompt
-    result = TestSearchPubs.search_by_vectorDB(location, prompt, csv_filepath, fieldlist)
 
-    return result
+    lat, lng = await get_cordinates(location)
+
+    if lat and lng is None:
+        return {"error": "Invalid location"}
+    try:
+        with open(csv_filepath, encoding="utf-8", newline="") as f:
+            reader =csv.reader(f)
+            for index, row in enumerate(reader):
+                csvlist_by_python.append(row)
+                # 1行目はヘッダーなのでスキップ
+                if  index == 0:
+                    continue
+
+                csvlist_by_python[index][LONG_INDEX], csvlist_by_python[index][LAT_INDEX] = float(csvlist_by_python[index][LONG_INDEX]), float(csvlist_by_python[index][LAT_INDEX])
+
+                # distancelistにpopしたいindexをメモ
+                distance = math.sqrt((lat - csvlist_by_python[index][LONG_INDEX])**2 + (lng - csvlist_by_python[index][LAT_INDEX])**2)
+                if distance > 0.005:
+                    distancelist.append(index)
+            
+    except FileNotFoundError as e:
+        print(f"ファイルが見つかりませんでした: {csv_filepath}")
+
+    except Exception as e:
+        print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
+        return
+
+    try:
+        loader = CSVLoader(
+            file_path=csv_filepath,
+            csv_args={
+                "delimiter": ",",
+                "quotechar": '"',
+                "fieldnames": fieldlist,
+            },
+            encoding="utf-8",
+        )
+
+        csvlist_by_chroma = loader.load()
+
+    except FileNotFoundError as e:
+        print(f"ファイルが見つかりませんでした: {csv_filepath}")
+
+    except RuntimeError as e:
+        print("CSVファイルに空のフィールドが存在しています\n", traceback.format_exc())
+        return
+
+    except Exception as e:
+        print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
+        return
+    
+    if len(csvlist_by_chroma) == 0:
+        print("CSVファイルにデータがありません")
+        return
+    
+
+    for index in sorted(distancelist, reverse=True):
+        csvlist_by_chroma.pop(index)
+
+    vectordb = Chroma.from_documents(
+        documents=csvlist_by_chroma,
+        embedding=EMBEDDING_MODEL,
+        collection_name="pubs",
+        collection_metadata={"hnsw:space": "cosine"}
+    )
+
+    docs = vectordb.similarity_search_with_relevance_scores(prompt, k=1)
+    return docs
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
