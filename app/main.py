@@ -49,6 +49,13 @@ class Request(BaseModel):
     location: str
     prompt:  str
 
+class Response(BaseModel):
+    id: int
+    name: str
+    long: float
+    lat: float
+    area: str
+    category: str
 
 @app.get("/")
 async def hello():
@@ -80,7 +87,8 @@ async def search_pub(request: Request):
 
                 # distancelistにpopしたいindexをメモ
                 distance = math.sqrt((lat - csvlist_by_python[index][LONG_INDEX])**2 + (lng - csvlist_by_python[index][LAT_INDEX])**2)
-                if distance > 0.005:
+
+                if distance > 0.05:
                     distancelist.append(index)
             
     except FileNotFoundError as e:
@@ -122,6 +130,8 @@ async def search_pub(request: Request):
     for index in sorted(distancelist, reverse=True):
         csvlist_by_chroma.pop(index)
 
+    csvlist_by_chroma.pop(0)        # 1行目はヘッダーなのでスキップ
+
     vectordb = Chroma.from_documents(
         documents=csvlist_by_chroma,
         embedding=EMBEDDING_MODEL,
@@ -130,7 +140,23 @@ async def search_pub(request: Request):
     )
 
     docs = vectordb.similarity_search_with_relevance_scores(prompt, k=1)
-    return docs
+
+    if len(docs) == 0:
+        return {"error": "No result found"}
+
+    responselist = []
+    for index in range(len(docs)):
+        shop_information = docs[index][0].page_content.split("\n")
+        responselist.append(Response(
+            id=int(shop_information[0].replace("id: ", "")),
+            name=shop_information[1].replace("name: ", ""),
+            long=float(shop_information[2].replace("long: ", "")),
+            lat=float(shop_information[3].replace("lat: ", "")),
+            area=shop_information[4].replace("area: ", ""),
+            category=shop_information[5].replace("category: ", ""),
+        ))
+
+    return responselist
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
