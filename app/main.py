@@ -113,18 +113,19 @@ async def search_pub(request: Request):
 
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
+        return {"error": "File not found"}
 
     except RuntimeError as e:
         print("CSVファイルに空のフィールドが存在しています\n", traceback.format_exc())
-        return
+        return {"error": "Empty field found"}
 
     except Exception as e:
         print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
-        return
+        return {"error": "Unexpected error"}
     
     if len(csvlist_by_chroma) == 0:
         print("CSVファイルにデータがありません")
-        return
+        return {"error": "No data found"}
     
 
     for index in sorted(distancelist, reverse=True):
