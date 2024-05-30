@@ -66,7 +66,7 @@ async def search_pub(request: Request):
     csvlist_by_python = []
     csvlist_by_chroma = []
     distancelist = []
-    
+
     location = request.location
     prompt = request.prompt
 
@@ -76,7 +76,7 @@ async def search_pub(request: Request):
         return {"error": "Invalid location"}
     try:
         with open(csv_filepath, encoding="utf-8", newline="") as f:
-            reader =csv.reader(f)
+            reader=csv.reader(f)
             for index, row in enumerate(reader):
                 csvlist_by_python.append(row)
                 # 1行目はヘッダーなのでスキップ
@@ -93,10 +93,11 @@ async def search_pub(request: Request):
             
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
+        return {"error": "File not found"}
 
     except Exception as e:
         print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
-        return
+        return {"error": "Unexpected error"}
 
     try:
         loader = CSVLoader(
@@ -147,7 +148,7 @@ async def search_pub(request: Request):
 
     responselist = []
     for index in range(len(docs)):
-        shop_information = docs[index][0].page_content.split("\n")
+        shop_information = docs[index][0].page_content.split("\n")          # shop_information = [id, name, long, lat, area, category]
         responselist.append(Response(
             id=int(shop_information[0].replace("id: ", "")),
             name=shop_information[1].replace("name: ", ""),
