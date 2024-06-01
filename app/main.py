@@ -88,7 +88,7 @@ async def search_pub(request: Request):
                 # distancelistにpopしたいindexをメモ
                 distance = math.sqrt((lat - csvlist_by_python[index][LONG_INDEX])**2 + (lng - csvlist_by_python[index][LAT_INDEX])**2)
 
-                if distance > 0.05:
+                if distance > 0.006:
                     distancelist.append(index)
             
     except FileNotFoundError as e:
@@ -134,6 +134,9 @@ async def search_pub(request: Request):
 
     csvlist_by_chroma.pop(0)        # 1行目はヘッダーなのでスキップ
 
+    if len(csvlist_by_chroma) == 0:
+        return {"error": "No data found"}
+
     vectordb = Chroma.from_documents(
         documents=csvlist_by_chroma,
         embedding=EMBEDDING_MODEL,
@@ -142,6 +145,8 @@ async def search_pub(request: Request):
     )
 
     docs = vectordb.similarity_search_with_relevance_scores(prompt, k=1)
+
+    vectordb.delete_collection()
 
     if len(docs) == 0:
         return {"error": "No result found"}
