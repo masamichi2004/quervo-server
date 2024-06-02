@@ -11,6 +11,7 @@ import csv
 import math
 from models.api_models import Request
 from models.api_models import Response
+from geographiclib.geodesic import Geodesic
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
@@ -22,8 +23,15 @@ csv_filepath = "./app/data/example.csv"
 
 fieldlist = ["id", "name", "long", "lat", "area", "category"]
 
+distance_limit = 1000
+
 LONG_INDEX = 2
 LAT_INDEX = 3
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    geod = Geodesic.WGS84
+    g = geod.Inverse(lat1, lon1, lat2, lon2)
+    return g['s12']
 
 async def get_cordinates(place_name: str) -> float:
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={GOOGLE_MAP_GEOCODING_API_KEY}"
@@ -75,9 +83,9 @@ async def search_pub(request: Request):
                 csvlist_by_python[index][LONG_INDEX], csvlist_by_python[index][LAT_INDEX] = float(csvlist_by_python[index][LONG_INDEX]), float(csvlist_by_python[index][LAT_INDEX])
 
                 # distancelistにpopしたいindexをメモ
-                distance = math.sqrt((lat - csvlist_by_python[index][LONG_INDEX])**2 + (lng - csvlist_by_python[index][LAT_INDEX])**2)
+                distance_meters = calculate_distance(lat, lng, csvlist_by_python[index][LONG_INDEX], csvlist_by_python[index][LAT_INDEX])
 
-                if distance > 0.006:
+                if distance_meters > distance_limit:
                     distancelist.append(index)
             
     except FileNotFoundError as e:
