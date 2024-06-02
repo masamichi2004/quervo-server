@@ -10,7 +10,7 @@ import requests
 import csv
 import math
 from models.api_models import Request
-from models.api_models import Response
+from models.izakaya import Izakaya
 from geographiclib.geodesic import Geodesic
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
@@ -148,16 +148,17 @@ async def search_izakaya(request: Request):
         return {"error": "No result found"}
 
     responselist = []
-    for index in range(len(docs)):
-        shop_information = docs[index][0].page_content.split("\n")          # shop_information = [id, name, long, lat, area, category]
-        responselist.append(Response(
-            id=int(shop_information[0].replace("id: ", "")),
-            name=shop_information[1].replace("name: ", ""),
-            long=float(shop_information[2].replace("long: ", "")),
-            lat=float(shop_information[3].replace("lat: ", "")),
-            area=shop_information[4].replace("area: ", ""),
-            category=shop_information[5].replace("category: ", ""),
-        ))
+    for row in range(len(docs)):
+        content = docs[row][0].page_content.split("\n")          # shop_information = [id, name, long, lat, area, category]
+        izakaya_info = Izakaya(
+            id=int(content[0].replace("id: ", "")),
+            name=content[1].replace("name: ", ""),
+            long=float(content[2].replace("long: ", "")),
+            lat=float(content[3].replace("lat: ", "")),
+            area=content[4].replace("area: ", ""),
+            category=content[5].replace("category: ", ""),
+        )
+        responselist.append(izakaya_info)
 
     return responselist
 
