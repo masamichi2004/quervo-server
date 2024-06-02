@@ -57,7 +57,7 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_pub(request: Request):
+async def search_izakaya(request: Request):
     csvlist_by_python = []
     csvlist_by_chroma = []
     distancelist = []
@@ -137,7 +137,7 @@ async def search_pub(request: Request):
     vectordb = Chroma.from_documents(
         documents=csvlist_by_chroma,
         embedding=EMBEDDING_MODEL,
-        collection_name="pubs",
+        collection_name="izakaya",
         collection_metadata={"hnsw:space": "cosine"}
     )
 
