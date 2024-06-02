@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import uvicorn
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.vectorstores import Chroma
@@ -10,6 +9,8 @@ import traceback
 import requests
 import csv
 import math
+from models.api_models import Request
+from models.api_models import Response
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
@@ -44,18 +45,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-class Request(BaseModel):
-    location: str
-    prompt:  str
-
-class Response(BaseModel):
-    id: int
-    name: str
-    long: float
-    lat: float
-    area: str
-    category: str
 
 @app.get("/")
 async def hello():
