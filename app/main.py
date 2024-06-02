@@ -21,8 +21,6 @@ persist_directory = "./app/vectordb"
 
 csv_filepath = "./app/data/example.csv"
 
-fieldlist = ["id", "name", "long", "lat", "area", "category"]
-
 distance_limit = 1000
 
 LONG_INDEX = 2
@@ -63,6 +61,7 @@ async def search_pub(request: Request):
     csvlist_by_python = []
     csvlist_by_chroma = []
     distancelist = []
+    fieldlist = []
 
     location = request.location
     prompt = request.prompt
@@ -78,6 +77,7 @@ async def search_pub(request: Request):
                 csvlist_by_python.append(row)
                 # 1行目はヘッダーなのでスキップ
                 if  index == 0:
+                    fieldlist = row
                     continue
 
                 csvlist_by_python[index][LONG_INDEX], csvlist_by_python[index][LAT_INDEX] = float(csvlist_by_python[index][LONG_INDEX]), float(csvlist_by_python[index][LAT_INDEX])
