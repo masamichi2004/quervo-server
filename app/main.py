@@ -56,7 +56,7 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_izakaya(request: Request):
+async def search_izakaya(request: Request) -> list[Izakaya]:
     csvlist_by_python = []
     csvlist_by_chroma = []
     distancelist = []
