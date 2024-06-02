@@ -23,9 +23,9 @@ csv_filepath = "./app/data/example.csv"
 
 distance_limit = 1000
 
-(LAT_INDEX, LONG_INDEX) = (2, 3)
+(LAT_ROW, LONG_ROW) = (2, 3)
 
-def calculate_distance(lat1, lon1, lat2, lon2):
+def calculate_destination_distance(lat1, lon1, lat2, lon2):
     geod = Geodesic.WGS84
     g = geod.Inverse(lat1, lon1, lat2, lon2)
     return g['s12']
@@ -72,20 +72,20 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
     try:
         with open(csv_filepath, encoding="utf-8", newline="") as f:
             reader=csv.reader(f)
-            for index, row in enumerate(reader):
-                csvlist_by_python.append(row)
-                # 1行目はヘッダーなのでスキップ
-                if  index == 0:
-                    fieldlist = row
+            for row, csvfile_element in enumerate(reader):
+                csvlist_by_python.append(csvfile_element)
+                # 1行目はヘッダーなのでfieldlistに格納
+                if  row == 0:
+                    fieldlist = csvfile_element
                     continue
 
-                csvlist_by_python[index][LONG_INDEX], csvlist_by_python[index][LAT_INDEX] = float(csvlist_by_python[index][LONG_INDEX]), float(csvlist_by_python[index][LAT_INDEX])
+                csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW] = float(csvlist_by_python[row][LAT_ROW]), float(csvlist_by_python[row][LONG_ROW])
 
-                # distancelistにpopしたいindexをメモ
-                distance_meters = calculate_distance(lat, lng, csvlist_by_python[index][LONG_INDEX], csvlist_by_python[index][LAT_INDEX])
+                # distancelistにpopしたい要素をメモ
+                distance_meters = calculate_destination_distance(lat, lng, csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW])
 
                 if distance_meters > distance_limit:
-                    distancelist.append(index)
+                    distancelist.append(row)
             
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
