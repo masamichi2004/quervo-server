@@ -23,8 +23,7 @@ csv_filepath = "./app/data/example.csv"
 
 distance_limit = 1000
 
-LONG_INDEX = 2
-LAT_INDEX = 3
+(LAT_INDEX, LONG_INDEX) = (2, 3)
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     geod = Geodesic.WGS84
