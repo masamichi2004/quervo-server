@@ -11,6 +11,7 @@ import csv
 import math
 from models.api_models import Request
 from models.izakaya import Izakaya
+from models.coodinate import Coordinate
 from geographiclib.geodesic import Geodesic
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
@@ -25,21 +26,25 @@ distance_limit = 1000
 
 (LAT_ROW, LONG_ROW) = (2, 3)
 
-def calculate_destination_distance(lat1, lon1, lat2, lon2):
+def calculate_destination_distance(lat1, lon1, lat2, lon2) -> float:
     geod = Geodesic.WGS84
     g = geod.Inverse(lat1, lon1, lat2, lon2)
-    return g['s12']
+    destination_distance_meters = g['s12']
+    return destination_distance_meters
 
-async def get_cordinates(place_name: str) -> float:
+async def get_izakaya_coordinates(place_name: str) -> Coordinate | None:
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={GOOGLE_MAP_GEOCODING_API_KEY}"
     response = requests.get(url)
     data = response.json()
-    if data['status'] == 'OK':
-        lat = data['results'][0]['geometry']['location']['lat']
-        long = data['results'][0]['geometry']['location']['lng']
-        return lat, long
+    if data['status'] != 'OK':
+        return None
     else:
-        return None, None
+        coordinate_location = Coordinate(
+            lat=data['results'][0]['geometry']['location']['lat'],
+            lng=data['results'][0]['geometry']['location']['lng'],
+        )
+
+        return coordinate_location
 
 app = FastAPI()
 
@@ -65,9 +70,9 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
     location = request.location
     prompt = request.prompt
 
-    lat, lng = await get_cordinates(location)
+    izakaya_coordinate = await get_izakaya_coordinates(location)
 
-    if lat and lng is None:
+    if izakaya_coordinate is None:
         return {"error": "Invalid location"}
     try:
         with open(csv_filepath, encoding="utf-8", newline="") as f:
@@ -82,7 +87,7 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
                 csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW] = float(csvlist_by_python[list_row_number][LAT_ROW]), float(csvlist_by_python[list_row_number][LONG_ROW])
 
                 # distant_elements_number_listにpopしたい要素をメモ
-                destination_distance_meters = calculate_destination_distance(lat, lng, csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW])
+                destination_distance_meters = calculate_destination_distance(izakaya_coordinate.lat, izakaya_coordinate.lng, csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW])
 
                 if destination_distance_meters > distance_limit:
                     distant_elements_number_list.append(list_row_number)
