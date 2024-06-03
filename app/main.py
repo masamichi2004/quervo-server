@@ -59,7 +59,7 @@ async def hello():
 async def search_izakaya(request: Request) -> list[Izakaya]:
     csvlist_by_python = []
     csvlist_by_chroma = []
-    distancelist = []
+    distant_elements_number_list = []
     fieldlist = []
 
     location = request.location
@@ -81,11 +81,11 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
 
                 csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW] = float(csvlist_by_python[row][LAT_ROW]), float(csvlist_by_python[row][LONG_ROW])
 
-                # distancelistにpopしたい要素をメモ
-                distance_meters = calculate_destination_distance(lat, lng, csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW])
+                # distant_elements_number_listにpopしたい要素をメモ
+                destination_distance_meters = calculate_destination_distance(lat, lng, csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW])
 
-                if distance_meters > distance_limit:
-                    distancelist.append(row)
+                if destination_distance_meters > distance_limit:
+                    distant_elements_number_list.append(row)
             
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
@@ -125,7 +125,7 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
         return {"error": "No data found"}
     
 
-    for index in sorted(distancelist, reverse=True):
+    for index in sorted(distant_elements_number_list, reverse=True):
         csvlist_by_chroma.pop(index)
 
     csvlist_by_chroma.pop(0)        # 1行目はヘッダーなのでスキップ
