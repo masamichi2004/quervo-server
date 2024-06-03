@@ -72,21 +72,21 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
     try:
         with open(csv_filepath, encoding="utf-8", newline="") as f:
             reader=csv.reader(f)
-            for row, csvfile_element in enumerate(reader):
-                csvlist_by_python.append(csvfile_element)
+            for list_row_number, csvfile_element_row in enumerate(reader):
+                csvlist_by_python.append(csvfile_element_row)
                 # 1行目はヘッダーなのでfieldlistに格納
-                if  row == 0:
-                    fieldlist = csvfile_element
+                if  list_row_number == 0:
+                    fieldlist = csvfile_element_row         # csvfile_element_row: list[str]
                     continue
 
-                csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW] = float(csvlist_by_python[row][LAT_ROW]), float(csvlist_by_python[row][LONG_ROW])
+                csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW] = float(csvlist_by_python[list_row_number][LAT_ROW]), float(csvlist_by_python[list_row_number][LONG_ROW])
 
                 # distant_elements_number_listにpopしたい要素をメモ
-                destination_distance_meters = calculate_destination_distance(lat, lng, csvlist_by_python[row][LAT_ROW], csvlist_by_python[row][LONG_ROW])
+                destination_distance_meters = calculate_destination_distance(lat, lng, csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW])
 
                 if destination_distance_meters > distance_limit:
-                    distant_elements_number_list.append(row)
-            
+                    distant_elements_number_list.append(list_row_number)
+
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
         return {"error": "File not found"}
