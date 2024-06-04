@@ -24,27 +24,27 @@ csv_filepath = "./app/data/example.csv"
 
 distance_limit = 1000
 
-(LAT_ROW, LONG_ROW) = (2, 3)
+(LAT_COLUMUN, LONG_COLUMUN) = (2, 3)
 
-def calculate_destination_distance(lat1, lon1, lat2, lon2) -> float:
+def calculate_destination_distance(search_point_coodinate: Coordinate, izakaya_coordinate: Coordinate) -> float:
     geod = Geodesic.WGS84
-    g = geod.Inverse(lat1, lon1, lat2, lon2)
+    g = geod.Inverse(search_point_coodinate.lat, search_point_coodinate.lng, izakaya_coordinate.lat, izakaya_coordinate.lng)
     destination_distance_meters = g['s12']
     return destination_distance_meters
 
-async def get_izakaya_coordinates(place_name: str) -> Coordinate | None:
+def get_search_point_coordinates(place_name: str)-> Coordinate|None:
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={GOOGLE_MAP_GEOCODING_API_KEY}"
     response = requests.get(url)
     data = response.json()
     if data['status'] != 'OK':
         return None
     else:
-        coordinate_location = Coordinate(
+        search_point_coordinate = Coordinate(
             lat=data['results'][0]['geometry']['location']['lat'],
             lng=data['results'][0]['geometry']['location']['lng'],
         )
 
-        return coordinate_location
+        return search_point_coordinate
 
 app = FastAPI()
 
@@ -62,32 +62,35 @@ async def hello():
 
 @app.post("/api")
 async def search_izakaya(request: Request) -> list[Izakaya]:
-    csvlist_by_python = []
-    csvlist_by_chroma = []
+    csvlist_by_chroma = [] # embedding_izakaya_info_list
     distant_elements_number_list = []
     fieldlist = []
 
     location = request.location
     prompt = request.prompt
 
-    izakaya_coordinate = await get_izakaya_coordinates(location)
+    search_point_coordinate = get_search_point_coordinates(location)
 
-    if izakaya_coordinate is None:
+    if search_point_coordinate is None:
         return {"error": "Invalid location"}
     try:
         with open(csv_filepath, encoding="utf-8", newline="") as f:
             reader=csv.reader(f)
             for list_row_number, csvfile_element_row in enumerate(reader):
-                csvlist_by_python.append(csvfile_element_row)
                 # 1行目はヘッダーなのでfieldlistに格納
                 if  list_row_number == 0:
                     fieldlist = csvfile_element_row         # csvfile_element_row: list[str]
                     continue
 
-                csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW] = float(csvlist_by_python[list_row_number][LAT_ROW]), float(csvlist_by_python[list_row_number][LONG_ROW])
+                csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN] = float(csvfile_element_row[LAT_COLUMUN]), float(csvfile_element_row[LONG_COLUMUN])
+
+                izakaya_coordinate = Coordinate(
+                    lat=csvfile_element_row[LAT_COLUMUN], 
+                    lng=csvfile_element_row[LONG_COLUMUN]
+                )
 
                 # distant_elements_number_listにpopしたい要素をメモ
-                destination_distance_meters = calculate_destination_distance(izakaya_coordinate.lat, izakaya_coordinate.lng, csvlist_by_python[list_row_number][LAT_ROW], csvlist_by_python[list_row_number][LONG_ROW])
+                destination_distance_meters = calculate_destination_distance(search_point_coordinate, izakaya_coordinate)
 
                 if destination_distance_meters > distance_limit:
                     distant_elements_number_list.append(list_row_number)
