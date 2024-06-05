@@ -13,6 +13,7 @@ from models.api_models import Request
 from models.izakaya import Izakaya
 from models.coodinate import Coordinate
 from geographiclib.geodesic import Geodesic
+from typing import List
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
@@ -28,11 +29,11 @@ distance_limit = 1000
 
 def calculate_destination_distance(search_point_coodinate: Coordinate, izakaya_coordinate: Coordinate) -> float:
     geod = Geodesic.WGS84
-    g = geod.Inverse(search_point_coodinate.lat, search_point_coodinate.lng, izakaya_coordinate.lat, izakaya_coordinate.lng)
+    g = geod.Inverse(*search_point_coodinate.coordinate, *izakaya_coordinate.coordinate)
     destination_distance_meters = g['s12']
     return destination_distance_meters
 
-def get_search_point_coordinates(place_name: str)-> Coordinate|None:
+def get_search_point_coordinates(place_name: str) -> Coordinate|None:
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={GOOGLE_MAP_GEOCODING_API_KEY}"
     response = requests.get(url)
     data = response.json()
@@ -40,10 +41,8 @@ def get_search_point_coordinates(place_name: str)-> Coordinate|None:
         return None
     else:
         search_point_coordinate = Coordinate(
-            lat=data['results'][0]['geometry']['location']['lat'],
-            lng=data['results'][0]['geometry']['location']['lng'],
+            coordinate=(data['results'][0]['geometry']['location']['lat'], data['results'][0]['geometry']['location']['lng'])
         )
-
         return search_point_coordinate
 
 app = FastAPI()
@@ -61,9 +60,9 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_izakaya(request: Request) -> list[Izakaya]:
-    csvlist_by_chroma = [] # embedding_izakaya_info_list
-    distant_elements_number_list = []
+async def search_izakaya(request: Request):
+    izakaya_info_list = []         # type: List[Izakaya]
+    distant_elements_number_list = []     # type: List[int]
     fieldlist = []
 
     location = request.location
@@ -74,26 +73,25 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
     if search_point_coordinate is None:
         return {"error": "Invalid location"}
     try:
-        with open(csv_filepath, encoding="utf-8", newline="") as f:
-            reader=csv.reader(f)
-            for list_row_number, csvfile_element_row in enumerate(reader):
-                # 1行目はヘッダーなのでfieldlistに格納
-                if  list_row_number == 0:
-                    fieldlist = csvfile_element_row         # csvfile_element_row: list[str]
-                    continue
+        f = open(csv_filepath, "r", encoding="utf-8")
+        reader = csv.reader(f, delimiter=",", lineterminator="\r\n", skipinitialspace=True)
+        for list_row_number, csvfile_element_row in enumerate(reader):
+            # 1行目はヘッダーなのでfieldlistに格納
+            if  list_row_number == 0:
+                fieldlist = csvfile_element_row         # csvfile_element_row: list[str]
+                continue
 
-                csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN] = float(csvfile_element_row[LAT_COLUMUN]), float(csvfile_element_row[LONG_COLUMUN])
+            csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN] = float(csvfile_element_row[LAT_COLUMUN]), float(csvfile_element_row[LONG_COLUMUN])
 
-                izakaya_coordinate = Coordinate(
-                    lat=csvfile_element_row[LAT_COLUMUN], 
-                    lng=csvfile_element_row[LONG_COLUMUN]
-                )
+            izakaya_coordinate = Coordinate(
+                coordinate=(csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN])
+            )
 
-                # distant_elements_number_listにpopしたい要素をメモ
-                destination_distance_meters = calculate_destination_distance(search_point_coordinate, izakaya_coordinate)
+            # distant_elements_number_listにpopしたい要素をメモ
+            destination_distance_meters = calculate_destination_distance(search_point_coordinate, izakaya_coordinate)
 
-                if destination_distance_meters > distance_limit:
-                    distant_elements_number_list.append(list_row_number)
+            if destination_distance_meters > distance_limit:
+                distant_elements_number_list.append(list_row_number)
 
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
@@ -114,7 +112,7 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
             encoding="utf-8",
         )
 
-        csvlist_by_chroma = loader.load()
+        izakaya_info_list = loader.load()
 
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
@@ -128,21 +126,21 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
         print("予期せぬエラーが発生しました\n以下にエラー内容を出力します\n", traceback.format_exc())
         return {"error": "Unexpected error"}
     
-    if len(csvlist_by_chroma) == 0:
+    if len(izakaya_info_list) == 0:
         print("CSVファイルにデータがありません")
         return {"error": "No data found"}
     
 
     for index in sorted(distant_elements_number_list, reverse=True):
-        csvlist_by_chroma.pop(index)
+        izakaya_info_list.pop(index)
 
-    csvlist_by_chroma.pop(0)        # 1行目はヘッダーなのでスキップ
+    izakaya_info_list.pop(0)        # 1行目はヘッダーなのでスキップ
 
-    if len(csvlist_by_chroma) == 0:
+    if len(izakaya_info_list) == 0:
         return {"error": "No data found"}
 
     vectordb = Chroma.from_documents(
-        documents=csvlist_by_chroma,
+        documents=izakaya_info_list,
         embedding=EMBEDDING_MODEL,
         collection_name="izakaya",
         collection_metadata={"hnsw:space": "cosine"}
@@ -155,7 +153,7 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
     if len(docs) == 0:
         return {"error": "No result found"}
 
-    responselist = []
+    re_ranked_izakaya_list = []
     for row in range(len(docs)):
         content = docs[row][0].page_content.split("\n")          # shop_information = [id, name, long, lat, area, category]
         izakaya_info = Izakaya(
@@ -166,9 +164,9 @@ async def search_izakaya(request: Request) -> list[Izakaya]:
             area=content[4].replace("area: ", ""),
             category=content[5].replace("category: ", ""),
         )
-        responselist.append(izakaya_info)
+        re_ranked_izakaya_list.append(izakaya_info)
 
-    return responselist
+    return re_ranked_izakaya_list
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
