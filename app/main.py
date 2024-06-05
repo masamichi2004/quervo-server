@@ -62,7 +62,7 @@ async def hello():
 @app.post("/api")
 async def search_izakaya(request: Request):
     izakaya_info_list = []         # type: List[Izakaya]
-    distant_elements_number_list = []     # type: List[int]
+    distant_elements_num_list = []     # type: List[int]
     fieldlist = []
 
     location = request.location
@@ -87,11 +87,11 @@ async def search_izakaya(request: Request):
                 coordinate=(csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN])
             )
 
-            # distant_elements_number_listにpopしたい要素をメモ
+            # distant_elements_num_listにpopしたい要素をメモ
             destination_distance_meters = calculate_destination_distance(search_point_coordinate, izakaya_coordinate)
 
             if destination_distance_meters > distance_limit:
-                distant_elements_number_list.append(list_row_number)
+                distant_elements_num_list.append(list_row_number)
 
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
@@ -131,7 +131,7 @@ async def search_izakaya(request: Request):
         return {"error": "No data found"}
     
 
-    for index in sorted(distant_elements_number_list, reverse=True):
+    for index in sorted(distant_elements_num_list, reverse=True):
         izakaya_info_list.pop(index)
 
     izakaya_info_list.pop(0)        # 1行目はヘッダーなのでスキップ
