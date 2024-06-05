@@ -60,13 +60,13 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_izakaya(request: Request):
+async def search_izakaya(izakaya_search_request: Request):
     izakaya_info_list = []         # type: List[Izakaya]
     distant_elements_num_list = []     # type: List[int]
     fieldlist = []
 
-    location = request.location
-    prompt = request.prompt
+    location = izakaya_search_request.location
+    prompt = izakaya_search_request.prompt
 
     search_point_coordinate = get_search_point_coordinates(location)
 
@@ -131,8 +131,8 @@ async def search_izakaya(request: Request):
         return {"error": "No data found"}
     
 
-    for index in sorted(distant_elements_num_list, reverse=True):
-        izakaya_info_list.pop(index)
+    for distant_elements_num in sorted(distant_elements_num_list, reverse=True):
+        izakaya_info_list.pop(distant_elements_num)
 
     izakaya_info_list.pop(0)        # 1行目はヘッダーなのでスキップ
 
