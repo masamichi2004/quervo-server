@@ -92,7 +92,7 @@ async def search_izakaya(izakaya_search_request: Request):
 
             if destination_distance_meters > distance_limit:
                 distant_elements_num_list.append(list_row_number)
-
+        f.close()
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
         return {"error": "File not found"}
