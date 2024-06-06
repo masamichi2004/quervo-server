@@ -22,7 +22,7 @@ csv_filepath = "./app/data/example.csv"
 
 distance_limit = 1000
 
-(LAT_COLUMUN, LONG_COLUMUN) = (2, 3)
+(LAT_COLUMUN, LNG_COLUMUN) = (2, 3)
 
 def calculate_destination_distance(search_point_coodinate: Coordinate, izakaya_coordinate: Coordinate) -> float:
     geod = Geodesic.WGS84
@@ -78,10 +78,10 @@ async def search_izakaya(izakaya_search_request: Request):
                 fieldlist = csvfile_element_row         # csvfile_element_row: list[str]
                 continue
 
-            csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN] = float(csvfile_element_row[LAT_COLUMUN]), float(csvfile_element_row[LONG_COLUMUN])
+            csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LNG_COLUMUN] = float(csvfile_element_row[LAT_COLUMUN]), float(csvfile_element_row[LNG_COLUMUN])
 
             izakaya_coordinate = Coordinate(
-                coordinate=(csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LONG_COLUMUN])
+                coordinate=(csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LNG_COLUMUN])
             )
 
             # distant_elements_num_listにpopしたい要素をメモ
