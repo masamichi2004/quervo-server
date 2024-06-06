@@ -8,7 +8,6 @@ import os
 import traceback
 import requests
 import csv
-import math
 from models.api_models import Request
 from models.izakaya import Izakaya
 from models.coodinate import Coordinate
@@ -18,8 +17,6 @@ from typing import List
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
 GOOGLE_MAP_GEOCODING_API_KEY = os.getenv("GOOGLE_MAP_GEOCODING_API_KEY")
-
-persist_directory = "./app/vectordb"
 
 csv_filepath = "./app/data/example.csv"
 
@@ -155,11 +152,11 @@ async def search_izakaya(izakaya_search_request: Request):
 
     re_ranked_izakaya_list = []
     for row in range(len(docs)):
-        content = docs[row][0].page_content.split("\n")          # shop_information = [id, name, long, lat, area, category]
+        content = docs[row][0].page_content.split("\n")          # shop_information = [id, name, lng, lat, area, category]
         izakaya_info = Izakaya(
             id=int(content[0].replace("id: ", "")),
             name=content[1].replace("name: ", ""),
-            long=float(content[2].replace("long: ", "")),
+            lng=float(content[2].replace("lng: ", "")),
             lat=float(content[3].replace("lat: ", "")),
             area=content[4].replace("area: ", ""),
             category=content[5].replace("category: ", ""),
