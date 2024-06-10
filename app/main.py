@@ -8,9 +8,9 @@ import os
 import traceback
 import requests
 import csv
-from models.api_models import Request
+from models.api_models import Prompt
 from models.izakaya import Izakaya
-from models.coodinate import Coordinate
+from app.models.coordinate import Coordinate
 from geographiclib.geodesic import Geodesic
 from typing import List
 
@@ -57,7 +57,7 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_izakaya(izakaya_search_request: Request):
+async def search_izakaya(izakaya_search_request: Prompt):
     izakaya_info_list = []         # type: List[Izakaya]
     distant_elements_num_list = []     # type: List[int]
     fieldlist = []
@@ -152,7 +152,7 @@ async def search_izakaya(izakaya_search_request: Request):
 
     re_ranked_izakaya_list = []
     for row in range(len(docs)):
-        content = docs[row][0].page_content.split("\n")          # shop_information = [id, name, lng, lat, area, category]
+        content = docs[row][0].page_content.split("\n")          # izakaya_information = [id, name, lng, lat, area, category]
         izakaya_info = Izakaya(
             id=int(content[0].replace("id: ", "")),
             name=content[1].replace("name: ", ""),
