@@ -5,4 +5,5 @@ class Izakaya(BaseModel):
     lng: float
     lat: float
     area: str
+    distance: float = None
     category: str
