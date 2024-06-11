@@ -4,43 +4,25 @@ import uvicorn
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-import os
 import traceback
-import requests
 import csv
 from models.api_models import Prompt
 from models.izakaya import Izakaya
-from app.models.coordinate import Coordinate
+from models.coordinate import Coordinate
 from geographiclib.geodesic import Geodesic
 from typing import List
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
-GOOGLE_MAP_GEOCODING_API_KEY = os.getenv("GOOGLE_MAP_GEOCODING_API_KEY")
-
 csv_filepath = "./app/data/example.csv"
-
-distance_limit = 1000
 
 (LAT_COLUMUN, LNG_COLUMUN) = (2, 3)
 
-def calculate_destination_distance(search_point_coodinate: Coordinate, izakaya_coordinate: Coordinate) -> float:
+def calculate_destination_distance(currnet_coodinate: Coordinate, izakaya_coordinate: Coordinate) -> float:
     geod = Geodesic.WGS84
-    g = geod.Inverse(*search_point_coodinate.coordinate, *izakaya_coordinate.coordinate)
+    g = geod.Inverse(*currnet_coodinate.coordinate, *izakaya_coordinate.coordinate)
     destination_distance_meters = g['s12']
     return destination_distance_meters
-
-def get_search_point_coordinates(place_name: str) -> Coordinate|None:
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={GOOGLE_MAP_GEOCODING_API_KEY}"
-    response = requests.get(url)
-    data = response.json()
-    if data['status'] != 'OK':
-        return None
-    else:
-        search_point_coordinate = Coordinate(
-            coordinate=(data['results'][0]['geometry']['location']['lat'], data['results'][0]['geometry']['location']['lng'])
-        )
-        return search_point_coordinate
 
 app = FastAPI()
 
@@ -57,38 +39,20 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_izakaya(izakaya_search_request: Prompt):
+async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | dict:
     izakaya_info_list = []         # type: List[Izakaya]
-    distant_elements_num_list = []     # type: List[int]
-    fieldlist = []
+    fieldlist = []              # type: list[str]
 
-    location = izakaya_search_request.location
-    prompt = izakaya_search_request.prompt
+    current_location = Coordinate(
+        coordinate=izakaya_search_request.current_coodinate     # type: tuple[float, float]
+    )
+    prompt = izakaya_search_request.prompt      # type: str
 
-    search_point_coordinate = get_search_point_coordinates(location)
-
-    if search_point_coordinate is None:
-        return {"error": "Invalid location"}
     try:
         f = open(csv_filepath, "r", encoding="utf-8")
-        reader = csv.reader(f, delimiter=",", lineterminator="\r\n", skipinitialspace=True)
-        for list_row_number, csvfile_element_row in enumerate(reader):
-            # 1行目はヘッダーなのでfieldlistに格納
-            if  list_row_number == 0:
-                fieldlist = csvfile_element_row         # csvfile_element_row: list[str]
-                continue
-
-            csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LNG_COLUMUN] = float(csvfile_element_row[LAT_COLUMUN]), float(csvfile_element_row[LNG_COLUMUN])
-
-            izakaya_coordinate = Coordinate(
-                coordinate=(csvfile_element_row[LAT_COLUMUN], csvfile_element_row[LNG_COLUMUN])
-            )
-
-            # distant_elements_num_listにpopしたい要素をメモ
-            destination_distance_meters = calculate_destination_distance(search_point_coordinate, izakaya_coordinate)
-
-            if destination_distance_meters > distance_limit:
-                distant_elements_num_list.append(list_row_number)
+        reader = csv.reader(f, delimiter=",", skipinitialspace=True)
+        # 1行目はヘッダーなのでfieldlistに格納
+        fieldlist = next(reader)         # type: list[str]
         f.close()
     except FileNotFoundError as e:
         print(f"ファイルが見つかりませんでした: {csv_filepath}")
@@ -126,10 +90,6 @@ async def search_izakaya(izakaya_search_request: Prompt):
     if len(izakaya_info_list) == 0:
         print("CSVファイルにデータがありません")
         return {"error": "No data found"}
-    
-
-    for distant_elements_num in sorted(distant_elements_num_list, reverse=True):
-        izakaya_info_list.pop(distant_elements_num)
 
     izakaya_info_list.pop(0)        # 1行目はヘッダーなのでスキップ
 
@@ -143,7 +103,7 @@ async def search_izakaya(izakaya_search_request: Prompt):
         collection_metadata={"hnsw:space": "cosine"}
     )
 
-    docs = vectordb.similarity_search_with_relevance_scores(prompt, k=1)
+    docs = vectordb.similarity_search_with_relevance_scores(prompt, k=3)
 
     vectordb.delete_collection()
 
@@ -151,14 +111,21 @@ async def search_izakaya(izakaya_search_request: Prompt):
         return {"error": "No result found"}
 
     re_ranked_izakaya_list = []
+    current_destination_distance = None
     for row in range(len(docs)):
-        content = docs[row][0].page_content.split("\n")          # izakaya_information = [id, name, lng, lat, area, category]
+        content = docs[row][0].page_content.split("\n")          # content = [id, name, lng, lat, area, category]
+        izakaya_coordinate = Coordinate(
+            coordinate=(float(content[2].replace("lng: ", "")), float(content[3].replace("lat: ", "")))
+        )
+        if current_location is not None:
+            current_destination_distance = calculate_destination_distance(current_location, izakaya_coordinate)
         izakaya_info = Izakaya(
             id=int(content[0].replace("id: ", "")),
             name=content[1].replace("name: ", ""),
-            lng=float(content[2].replace("lng: ", "")),
-            lat=float(content[3].replace("lat: ", "")),
+            lng=float(izakaya_coordinate.coordinate[0]),
+            lat=float(izakaya_coordinate.coordinate[1]),
             area=content[4].replace("area: ", ""),
+            distance=current_destination_distance,
             category=content[5].replace("category: ", ""),
         )
         re_ranked_izakaya_list.append(izakaya_info)
