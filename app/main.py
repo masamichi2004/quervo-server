@@ -114,16 +114,19 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | dict
     current_destination_distance = None
     for row in range(len(docs)):
         content = docs[row][0].page_content.split("\n")          # content = [id, name, lng, lat, area, category]
+
         izakaya_coordinate = Coordinate(
             coordinate=(float(content[2].replace("lng: ", "")), float(content[3].replace("lat: ", "")))
         )
+
         if current_location is not None:
             current_destination_distance = calculate_destination_distance(current_location, izakaya_coordinate)
+            
         izakaya_info = Izakaya(
             id=int(content[0].replace("id: ", "")),
             name=content[1].replace("name: ", ""),
-            lng=float(izakaya_coordinate.coordinate[0]),
-            lat=float(izakaya_coordinate.coordinate[1]),
+            lng=izakaya_coordinate.coordinate[0],
+            lat=izakaya_coordinate.coordinate[1],
             area=content[4].replace("area: ", ""),
             distance=current_destination_distance,
             category=content[5].replace("category: ", ""),
