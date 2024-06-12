@@ -10,7 +10,7 @@ from app.models.api_models import Prompt
 from app.models.izakaya import Izakaya
 from app.models.coordinate import Coordinate
 from geographiclib.geodesic import Geodesic
-from typing import List
+from typing import List, Dict
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
@@ -39,7 +39,7 @@ async def hello():
     return {"message": "Hello World"}
 
 @app.post("/api")
-async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | dict:
+async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict[str, str]:
     izakaya_info_list = []         # type: List[Izakaya]
     fieldlist = []              # type: list[str]
 
