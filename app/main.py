@@ -43,9 +43,8 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
     izakaya_info_list = []         # type: List[Izakaya]
     fieldlist = []              # type: list[str]
 
-    current_location = Coordinate(
-        coordinate=izakaya_search_request.current_coodinate     # type: tuple[float, float]
-    )
+    current_location = izakaya_search_request.current_coodinate     # type: Coordinate
+
     prompt = izakaya_search_request.prompt      # type: str
 
     try:
@@ -91,8 +90,6 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
         print("CSVファイルにデータがありません")
         return {"error": "No data found"}
 
-    izakaya_info_list.pop(0)        # 1行目はヘッダーなのでスキップ
-
     if len(izakaya_info_list) == 0:
         return {"error": "No data found"}
 
@@ -103,7 +100,7 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
         collection_metadata={"hnsw:space": "cosine"}
     )
 
-    docs = vectordb.similarity_search_with_relevance_scores(prompt, k=3)
+    docs = vectordb.similarity_search_with_relevance_scores(prompt, k=10)
 
     vectordb.delete_collection()
 
@@ -114,6 +111,10 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
     current_destination_distance = None
     for row in range(len(docs)):
         content = docs[row][0].page_content.split("\n")          # content = [id, name, lng, lat, area, category]
+
+        # ヘッダー行はスキップ(あってもいらない)
+        if content == ['id: id', 'name: name', 'long: long', 'lat: lat', 'area: area', 'category: category']:
+            continue
 
         izakaya_coordinate = Coordinate(
             coordinate=(float(content[2].replace("lng: ", "")), float(content[3].replace("lat: ", "")))
