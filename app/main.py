@@ -6,9 +6,9 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import traceback
 import csv
-from models.api_models import Prompt
-from models.izakaya import Izakaya
-from models.coordinate import Coordinate
+from app.models.api_models import Prompt
+from app.models.izakaya import Izakaya
+from app.models.coordinate import Coordinate
 from geographiclib.geodesic import Geodesic
 from typing import List
 
@@ -121,12 +121,12 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | dict
 
         if current_location is not None:
             current_destination_distance = calculate_destination_distance(current_location, izakaya_coordinate)
-            
+
         izakaya_info = Izakaya(
             id=int(content[0].replace("id: ", "")),
             name=content[1].replace("name: ", ""),
-            lng=izakaya_coordinate.coordinate[0],
-            lat=izakaya_coordinate.coordinate[1],
+            lng=float(content[2].replace("lng: ", "")),
+            lat=float(content[3].replace("lat: ", "")),
             area=content[4].replace("area: ", ""),
             distance=current_destination_distance,
             category=content[5].replace("category: ", ""),
@@ -134,6 +134,3 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | dict
         re_ranked_izakaya_list.append(izakaya_info)
 
     return re_ranked_izakaya_list
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
