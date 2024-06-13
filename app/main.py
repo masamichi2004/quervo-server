@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -113,7 +112,7 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
         content = docs[row][0].page_content.split("\n")          # content = [id, name, lng, lat, area, category]
 
         # ヘッダー行はスキップ(あってもいらない)
-        if content == ['id: id', 'name: name', 'long: long', 'lat: lat', 'area: area', 'category: category']:
+        if content == ['id: id', 'name: name', 'lng: lng', 'lat: lat', 'area: area', 'category: category']:
             continue
 
         izakaya_coordinate = Coordinate(

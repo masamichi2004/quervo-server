@@ -1,3 +1,4 @@
 from pydantic import BaseModel
+from typing import Tuple
 class Coordinate(BaseModel):
-    coordinate: tuple[float, float]     # tuple[float, float] = [lng, lat]
+    coordinate: Tuple[float, float]     # tuple[float, float] = [lng, lat]
