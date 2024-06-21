@@ -74,4 +74,4 @@ def main(query: str):
     pprint(similarity)
 
 
-main(query="茨木の飲み屋")
+main(query="大人数でも入れるお店を教えて")
