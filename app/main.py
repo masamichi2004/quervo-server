@@ -13,9 +13,7 @@ from typing import List, Dict
 
 EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
 
-csv_filepath = "./app/data/example.csv"
-
-(LAT_COLUMUN, LNG_COLUMUN) = (2, 3)
+csv_filepath = "./app/data/test.csv"
 
 def calculate_destination_distance(currnet_coodinate: Coordinate, izakaya_coordinate: Coordinate) -> float:
     geod = Geodesic.WGS84
@@ -112,7 +110,7 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
         content = docs[row][0].page_content.split("\n")          # content = [id, name, lng, lat, area, category]
 
         # ヘッダー行はスキップ(あってもいらない)
-        if content == ['id: id', 'name: name', 'lng: lng', 'lat: lat', 'area: area', 'category: category']:
+        if content == ['id: id', 'name: name', 'lng: lng', 'lat: lat', 'area: area', 'category: category', 'prompt: prompt', 'photo_url: photo_url']:
             continue
 
         izakaya_coordinate = Coordinate(
