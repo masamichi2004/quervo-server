@@ -35,6 +35,10 @@ app.add_middleware(
 async def hello():
     return {"message": "Hello World"}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 @app.post("/api")
 async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict[str, str]:
     izakaya_info_list = []         # type: List[Izakaya]
