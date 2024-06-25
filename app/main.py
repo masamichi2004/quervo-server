@@ -14,6 +14,9 @@ from typing import List, Dict
 
 OPENAI_API_KEY =  os.getenv('OPENAI_API_KEY')
 
+print("うお～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～～")
+print(OPENAI_API_KEY)
+
 EMBEDDING_MODEL = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 csv_filepath = "./app/data/test.csv"
