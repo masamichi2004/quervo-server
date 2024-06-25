@@ -2,16 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
 import traceback
 import csv
 from app.models.api_models import Prompt
 from app.models.izakaya import Izakaya
 from app.models.coordinate import Coordinate
 from geographiclib.geodesic import Geodesic
+import os
+from langchain_openai import OpenAIEmbeddings
 from typing import List, Dict
 
-EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
+OPENAI_API_KEY =  os.getenv('OPENAI_API_KEY')
+
+EMBEDDING_MODEL = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 csv_filepath = "./app/data/test.csv"
 
@@ -34,6 +37,10 @@ app.add_middleware(
 @app.get("/")
 async def hello():
     return {"message": "Hello World"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 @app.post("/api")
 async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict[str, str]:
@@ -107,14 +114,14 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
     re_ranked_izakaya_list = []
     current_destination_distance = None
     for row in range(len(docs)):
-        content = docs[row][0].page_content.split("\n")          # content = [id, name, lng, lat, area, category]
+        content = docs[row][0].page_content.split("\n")          # content = [id, name, lat, lng, area, category]
 
         # ヘッダー行はスキップ(あってもいらない)
-        if content == ['id: id', 'name: name', 'lng: lng', 'lat: lat', 'area: area', 'category: category', 'prompt: prompt', 'photo_url: photo_url']:
+        if content == ['id: id', 'name: name', 'lat: lat', 'lng: lng', 'area: area', 'category: category', 'prompt: prompt', 'photo_url: photo_url']:
             continue
 
         izakaya_coordinate = Coordinate(
-            coordinate=(float(content[2].replace("lng: ", "")), float(content[3].replace("lat: ", "")))
+            coordinate=(float(content[2].replace("lat: ", "")), float(content[3].replace("lng: ", "")))
         )
 
         if current_location is not None:
@@ -123,8 +130,8 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
         izakaya_info = Izakaya(
             id=int(content[0].replace("id: ", "")),
             name=content[1].replace("name: ", ""),
-            lng=float(content[2].replace("lng: ", "")),
-            lat=float(content[3].replace("lat: ", "")),
+            lat=float(content[2].replace("lat: ", "")),
+            lng=float(content[3].replace("lng: ", "")),
             area=content[4].replace("area: ", ""),
             distance=current_destination_distance,
             category=content[5].replace("category: ", ""),
