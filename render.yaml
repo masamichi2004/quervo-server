@@ -1,0 +1,22 @@
+# Exported from Render on 2024-06-25T16:13:34Z
+services:
+- type: web
+  name: spring-project-watnow
+  runtime: docker
+  repo: https://github.com/MasamichiKanakubo/spring-project-watnow
+  plan: free
+  envVars:
+  - key: GOOGLE_MAP_GEOCODING_API_KEY
+    sync: false
+  - key: OPENAI_API_KEY
+    sync: false
+  - key: GOOGLE_MAP_GEOCODING_API_KEY
+    sync: false
+  - key: OPENAI_API_KEY
+    sync: false
+  region: singapore
+  healthCheckPath: /health
+  dockerContext: .
+  dockerfilePath: ./Dockerfile
+  pullRequestPreviewsEnabled: true
+version: "1"
