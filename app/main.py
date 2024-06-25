@@ -2,16 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
 import traceback
 import csv
 from app.models.api_models import Prompt
 from app.models.izakaya import Izakaya
 from app.models.coordinate import Coordinate
 from geographiclib.geodesic import Geodesic
+import os
+from langchain_openai import OpenAIEmbeddings
 from typing import List, Dict
 
-EMBEDDING_MODEL = HuggingFaceEmbeddings(model_name="sentence-transformers/distiluse-base-multilingual-cased-v2")
+OPENAI_API_KEY =  os.getenv('OPENAI_API_KEY')
+
+EMBEDDING_MODEL = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 csv_filepath = "./app/data/test.csv"
 
