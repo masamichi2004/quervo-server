@@ -47,9 +47,11 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
     izakaya_info_list = []         # type: List[Izakaya]
     fieldlist = []              # type: list[str]
 
-    current_location = izakaya_search_request.current_coodinate     # type: Coordinate
+    current_location = izakaya_search_request.current_coordinate     # type: Coordinate
 
     prompt = izakaya_search_request.prompt      # type: str
+    print(f"Current location: {current_location}")
+    print(f"Prompt: {prompt}")
 
     try:
         f = open(csv_filepath, "r", encoding="utf-8")
