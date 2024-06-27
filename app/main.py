@@ -115,7 +115,6 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
     current_destination_distance = None
     for row in range(len(docs)):
         content = docs[row][0].page_content.split("\n")          # content = [id, name, lat, lng, category]
-        print(content)
 
         # ヘッダー行はスキップ(あってもいらない)
         if content == ['id: id', 'name: name', 'lat: lat', 'lng: lng', 'category: category', 'prompt: prompt', 'photo_url: photo_url', 'address: address', 'izakaya_url: izakaya_url']:
@@ -134,9 +133,9 @@ async def search_izakaya(izakaya_search_request: Prompt) -> List[Izakaya] | Dict
             lat=float(content[2].replace("lat: ", "")),
             lng=float(content[3].replace("lng: ", "")),
             distance=current_destination_distance,
-            category=content[5].replace("category: ", ""),
-            photo_url=content[7].replace("photo_url: ", ""),
-            address=content[6].replace("address: ", ""),
+            category=content[4].replace("category: ", ""),
+            photo_url=content[6].replace("photo_url: ", ""),
+            address=content[7].replace("address: ", ""),
             izakaya_url=content[8].replace("izakaya_url: ", "")
         )
         re_ranked_izakaya_list.append(izakaya_info)
